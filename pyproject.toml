@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-agent-ops"
+version = "0.1.0"
+description = "Production ops infrastructure for autonomous LLM trading agents on edge hardware"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Soham Bapat" }]
+requires-python = ">=3.12"
+# the safety layer is deliberately dependency-free; adapters ported later
+# (broker, notifier, backup) will carry their own optional extras
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.4"]
+
+[tool.setuptools.packages.find]
+include = ["tradeops*"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

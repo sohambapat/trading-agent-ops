@@ -1,0 +1,26 @@
+# environment / secrets — never committed
+.env
+.env.*
+*.pem
+*.key
+
+# agent-written runtime state — never committed
+*.db
+halt_state.json
+last_backup.json
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+venv/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
