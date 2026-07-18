@@ -80,6 +80,24 @@ A few lessons this system paid for, in the currency of incidents:
 - **Streak rules need a magnitude floor.** A "three consecutive losing days"
   halt kept tripping on sub-0.1% equity drifts (including a holiday mark).
   A losing *streak* should require material losing *days*.
+- **Resting stops can vanish for reasons unrelated to price.** A
+  holiday-blind scheduler ran a Friday stop-tighten (cancel-then-replace)
+  against a closed market. The broker accepted the cancels and rejected the
+  replacements. Four positions went naked over the long weekend — not because
+  the market moved, but because of a sequencing assumption the ops layer
+  never verified. The health check's stop-coverage pass catches this by
+  reading the live order book every morning and placing an emergency stop
+  (and journaling both the detection and the remediation) when one is missing.
+- **A silent default is harder to catch than an explicit failure.** A
+  market-regime function fetched 5 days of VIX data. The OHLCV helper has a
+  `len(closes) < 20` guard that returned `None` for the short window; the
+  caller caught the exception with `except: pass`, assigned a hardcoded
+  fallback of `18.0`, and logged nothing. The agent ran on that constant for
+  weeks, unaware. A slightly elevated VIX was invisible to the risk system
+  the entire time. Fix: use a 3-month window (enough bars to clear the
+  guard), log a degraded-mode alert when any component falls back to a
+  default, and treat a silent fallback as a code smell — it means you know
+  the data is wrong and you've chosen not to tell anyone.
 
 ## What stays private
 
