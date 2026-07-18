@@ -20,7 +20,7 @@ and docs.
 | # | Tranche | Contents | Status |
 |---|---------|----------|--------|
 | 1 | Safety | Circuit breaker (L1 soft halt / L2 hard halt / L3 flatten / fail-closed), halt-state persistence, self-drill, manual reset | ✅ ported |
-| 2 | Alerting | Severity-tiered Slack notifier, scheduled health checks | planned |
+| 2 | Alerting | Severity-tiered Slack/SMTP/console notifier chain (`FallbackNotifier`), daily health check (LLM probe, broker reachability, stop-coverage remediation, circuit breaker, composable extra probes) | ✅ ported |
 | 3 | Journal | SQLite trade/equity/event journal, pending-fill settlement, broker reconciliation | planned |
 | 4 | Broker adapter | Alpaca implementation of the `Broker` port, order-lifecycle helpers (terminal-state waits, OTO handling, EOD sweep) | planned |
 | 5 | Backup | Tarball-bundled cloud backup with timeout hardening and retry | planned |

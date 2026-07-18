@@ -58,7 +58,9 @@ flowchart LR
 |---|---|
 | [`tradeops/interfaces.py`](tradeops/interfaces.py) | Ports (protocols) for broker, journal, and notifier — the safety layer stays import-clean of any concrete SDK |
 | [`tradeops/safety/circuit_breaker.py`](tradeops/safety/circuit_breaker.py) | Four-level portfolio circuit breaker: soft halt, hard halt, emergency flatten, fail-closed — with latching, self-drill, and audited manual reset |
-| [`tests/`](tests/) | Unit suite with in-memory fakes for every port |
+| [`tradeops/alerting/notifier.py`](tradeops/alerting/notifier.py) | Severity-tiered alerting: `SlackNotifier` (injectable transport), `EmailNotifier` (stdlib SMTP), `ConsoleNotifier` (always-succeeds last resort), `FallbackNotifier` (walks the chain, stops on first delivery), `notifier_from_env` for production wiring |
+| [`tradeops/health/checks.py`](tradeops/health/checks.py) | `DailyHealthCheck`: pre-market gate verifying LLM reachability, broker connectivity, resting-stop coverage (places emergency stops when missing and journals both detection and remediation), circuit breaker, and composable extra probes |
+| [`tests/`](tests/) | Unit suite with in-memory fakes for every port — 65 tests |
 
 ## Field notes
 
