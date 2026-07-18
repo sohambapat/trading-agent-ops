@@ -19,17 +19,22 @@ class Broker(Protocol):
         ...
 
     def get_positions(self) -> list[dict]:
-        """Open positions: {"ticker", "shares", "avg_cost", "current_price"}."""
+        """Open positions: {"ticker", "shares", "avg_cost", "current_price"};
+        may include "qty_available" (shares not reserved by resting orders)."""
         ...
 
     def get_open_orders(self) -> list[dict]:
-        """Open orders: at least {"id", "ticker"}."""
+        """Open orders: at least {"id", "ticker", "type"}."""
         ...
 
     def cancel_order(self, order_id: str) -> None: ...
 
     def close_position(self, ticker: str) -> None:
         """Market-close the full position."""
+        ...
+
+    def place_stop_order(self, ticker: str, shares: int, stop_price: float) -> None:
+        """Rest a protective sell-stop. Raises on rejection."""
         ...
 
     def wait_order_terminal(self, order_id: str) -> None:
@@ -59,6 +64,16 @@ class Journal(Protocol):
                           reason: str = "", operator: str | None = None) -> None: ...
 
     def log_trade(self, ticker: str, side: str, **fields) -> None: ...
+
+    def log_health_check(self, **fields) -> None:
+        """One row per scheduled health check (probe results, notes)."""
+        ...
+
+    def log_vulnerability(self, vuln_id: str, severity: str, description: str,
+                          auto_remediated: bool, remediation_action: str) -> None:
+        """Detection AND remediation both leave rows — the go/no-go gate
+        counts unremediated criticals."""
+        ...
 
 
 class Notifier(Protocol):
