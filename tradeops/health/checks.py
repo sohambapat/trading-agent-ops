@@ -16,8 +16,8 @@ against the broker's live order book every morning, assuming any stop can be
 missing for any reason — and both the detection and the remediation leave
 journal rows, because a go/no-go gate later counts unremediated criticals.
 """
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Callable, Iterable
 
 from tradeops.interfaces import Broker, Journal, Notifier
 

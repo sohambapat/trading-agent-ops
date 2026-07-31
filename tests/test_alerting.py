@@ -15,7 +15,6 @@ from tradeops.alerting import (
     notifier_from_env,
 )
 
-
 # ── format_alert ───────────────────────────────────────────────────────────────
 
 

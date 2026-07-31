@@ -23,5 +23,12 @@ include = ["tradeops*"]
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+# Selected explicitly rather than inherited. CI installs the current ruff, and
+# a release that widens the default rule set otherwise turns a green pipeline
+# red on a commit that changed nothing — the lint config has to be as pinned as
+# the dependency it lints with.
+select = ["E4", "E7", "E9", "F", "I", "UP"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

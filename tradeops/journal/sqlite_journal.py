@@ -34,7 +34,7 @@ history) are deliberately not part of the public extraction.
 import csv
 import json
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS trades (
@@ -136,11 +136,11 @@ TERMINAL_ACTIONS = ("BUY", "SELL", "SELL_FAILED")
 
 
 def _utcnow() -> str:
-    return datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+    return datetime.now(UTC).replace(tzinfo=None).isoformat()
 
 
 def _cutoff(days: int) -> str:
-    return (datetime.now(timezone.utc).replace(tzinfo=None)
+    return (datetime.now(UTC).replace(tzinfo=None)
             - timedelta(days=days)).isoformat()
 
 

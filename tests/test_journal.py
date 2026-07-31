@@ -7,7 +7,7 @@ ordering, epoch-marked baselines, and rows that are settled by evidence rather
 than by assumption.
 """
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -16,8 +16,8 @@ from tradeops.journal import SqliteJournal
 
 def ts(days_ago: float = 0, hour: int = 14) -> str:
     """An ISO timestamp `days_ago` days back, inside every retry window."""
-    base = datetime.now(timezone.utc).replace(tzinfo=None, hour=hour, minute=0,
-                                              second=0, microsecond=0)
+    base = datetime.now(UTC).replace(tzinfo=None, hour=hour, minute=0,
+                                     second=0, microsecond=0)
     return (base - timedelta(days=days_ago)).isoformat()
 
 
