@@ -44,6 +44,30 @@ class Broker(Protocol):
         ...
 
 
+class OrderHistory(Protocol):
+    """Post-trade lookups. Separate from `Broker` because this is the
+    read-only, after-the-fact surface reconciliation needs — a component that
+    only settles yesterday's records should not be handed a port that can
+    place orders."""
+
+    def get_order(self, order_id: str) -> dict | None:
+        """{"id", "status", "filled_avg_price"} or None if the lookup failed
+        (a transient error must be distinguishable from a real verdict —
+        returning None means "ask again later", never "it didn't fill")."""
+        ...
+
+    def get_recent_filled_sell(self, ticker: str, since_iso: str) -> dict | None:
+        """Most recent FILLED sell-side order for a ticker submitted after
+        `since_iso`: {"id", "filled_avg_price", "filled_at", "order_type"}.
+        This is how an autonomous stop fill is found after the fact."""
+        ...
+
+    def get_daily_open(self, ticker: str, day: str) -> float | None:
+        """Official opening print for a session (YYYY-MM-DD), or None if the
+        bar isn't available yet."""
+        ...
+
+
 class Journal(Protocol):
     """Append-only audit log; every safety action must leave a row."""
 
@@ -74,6 +98,38 @@ class Journal(Protocol):
         """Detection AND remediation both leave rows — the go/no-go gate
         counts unremediated criticals."""
         ...
+
+
+class TradeLedger(Protocol):
+    """The settlement surface: the subset of journal reads/writes that the
+    reconciliation pass needs. `SqliteJournal` implements both this and
+    `Journal`; they are split so the reconciler can be handed (and faked) as
+    exactly what it uses.
+
+    Every "get_*" here returns rows still awaiting a verdict, and every "set_*"
+    records one. Orders are keyed on EVENT TIME, not insert order — see
+    `SqliteJournal.get_unclosed_entries`.
+    """
+
+    def get_pending_buy_fills(self, days: int) -> list[dict]: ...
+    def set_buy_fill(self, trade_id: int, filled_avg_price: float | None = None,
+                     slippage_pct: float | None = None,
+                     fill_status: str = "FILLED") -> None: ...
+
+    def get_pending_sell_fills(self, days: int) -> list[dict]: ...
+    def settle_sell_fill(self, trade_id: int, exit_price: float,
+                         pnl_pct: float | None,
+                         filled_avg_price: float | None = None) -> None: ...
+    def mark_sell_failed(self, trade_id: int) -> None: ...
+
+    def get_unclosed_entries(self) -> list[dict]: ...
+
+    def get_fills_needing_decomposition(self, days: int) -> list[dict]: ...
+    def set_fill_decomposition(self, trade_id: int, gap_pct: float | None,
+                               exec_slippage_pct: float) -> None: ...
+
+    def log_trade(self, ticker: str, side: str, **fields) -> None: ...
+    def log_position_event(self, ticker: str, event_type: str, **fields) -> None: ...
 
 
 class Notifier(Protocol):
