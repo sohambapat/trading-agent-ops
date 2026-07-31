@@ -60,7 +60,9 @@ flowchart LR
 | [`tradeops/safety/circuit_breaker.py`](tradeops/safety/circuit_breaker.py) | Four-level portfolio circuit breaker: soft halt, hard halt, emergency flatten, fail-closed — with latching, self-drill, and audited manual reset |
 | [`tradeops/alerting/notifier.py`](tradeops/alerting/notifier.py) | Severity-tiered alerting: `SlackNotifier` (injectable transport), `EmailNotifier` (stdlib SMTP), `ConsoleNotifier` (always-succeeds last resort), `FallbackNotifier` (walks the chain, stops on first delivery), `notifier_from_env` for production wiring |
 | [`tradeops/health/checks.py`](tradeops/health/checks.py) | `DailyHealthCheck`: pre-market gate verifying LLM reachability, broker connectivity, resting-stop coverage (places emergency stops when missing and journals both detection and remediation), circuit breaker, and composable extra probes |
-| [`tests/`](tests/) | Unit suite with in-memory fakes for every port — 65 tests |
+| [`tradeops/journal/sqlite_journal.py`](tradeops/journal/sqlite_journal.py) | `SqliteJournal`: the system of record — trades, position events, equity snapshots (epoch-marked so deposits don't corrupt the drawdown baseline), breaker events, health checks, vulnerability log; event-time ordering, additive migrations, R-multiple round-trip pairing |
+| [`tradeops/journal/reconciliation.py`](tradeops/journal/reconciliation.py) | `FillReconciler`: four idempotent passes that make the journal agree with the broker — entry fills, pre-open exits queued for the auction, autonomous broker-side exits, gap-vs-execution slippage decomposition — plus `expectancy_report` for the live-vs-backtest comparison |
+| [`tests/`](tests/) | Unit suite with in-memory fakes for every port (real SQLite files for the journal) — 112 tests |
 
 ## Field notes
 
@@ -88,6 +90,33 @@ A few lessons this system paid for, in the currency of incidents:
   never verified. The health check's stop-coverage pass catches this by
   reading the live order book every morning and placing an emergency stop
   (and journaling both the detection and the remediation) when one is missing.
+- **The rows that go missing aren't a random sample.** A protective stop
+  fills autonomously, overnight, with none of the agent's code running — so
+  nothing journals it. The journal keeps showing an open position; the broker
+  shows flat. Every row lost this way is a *stop* fill, which means it is
+  nearly always a loss, so the performance record drifts optimistic all by
+  itself. If the number you're gating a live launch on is per-trade
+  expectancy, this is the failure that matters most and announces itself
+  least. Fix: a pass that treats "open in the journal, absent at the broker"
+  as an event to reconstruct from the broker's own order history — and pages
+  a human when it can't find the matching fill instead of guessing.
+- **Insert order is not event order.** A repaired exit row gets inserted
+  today but stamped with the fill it describes, which may be weeks old.
+  Anything ordering history by row id will therefore put that repair *after* a
+  re-entry that actually came later, and conclude the position is closed. That
+  is precisely how a live, underwater position became invisible to the
+  reconciliation pass that existed to protect it. Order by event time, and
+  keep repairs backdated — stamping them "now" quietly moves an old trade into
+  this week's numbers.
+- **Measure slippage against what the backtest actually assumed.** Comparing
+  fills to the decision price conflated two unrelated things: the overnight
+  gap (which the backtest models — it fills at the next open, and for a
+  momentum book that gap is often the reason the trade works) and real
+  execution cost. The combined number failed a 0.3% budget by construction and
+  pointed at the "fix" of skipping gappers, i.e. skipping the winners. Split
+  it: decision → open is strategy, open → fill is execution, and gate on the
+  median of the second one. Medians, because one bad fill on an illiquid open
+  will drag any average past any threshold.
 - **A silent default is harder to catch than an explicit failure.** A
   market-regime function fetched 5 days of VIX data. The OHLCV helper has a
   `len(closes) < 20` guard that returned `None` for the short window; the
